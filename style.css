@@ -1,0 +1,252 @@
+/* Palette
+White    #FFFFFF
+Red      #AB0000
+Orange   #D75813
+Black    #000000
+Gray     #5B6073
+DarkGray #1C1F24
+*/
+
+html, body{
+    font-family: 'Titillium Web', sans-serif;
+    font-size: 14px;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    color: #FFFFFF;
+    background-color: #1C1F24;
+}
+
+a, img {
+    outline : none;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+    font-size: inherit;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: inherit;
+}
+
+strong {
+    font-weight: 700;
+}
+
+small {
+    font-size: 0.8em;
+}
+
+#topHalf {
+    height: 50%;
+    background-image: -webkit-linear-gradient(top, #5B6073, #1C1F24);
+    background-image: -moz-linear-gradient(top, #5B6073, #1C1F24);
+    background-image: -ms-linear-gradient(top, #5B6073, #1C1F24);
+    background-image: -o-linear-gradient(top, #5B6073, #1C1F24);
+    background-image: linear-gradient(to bottom, #5B6073, #1C1F24);
+}
+
+#mapSearch{
+    position: absolute;
+    z-index: 5;
+    padding: 1%;
+}
+
+#address, #btnSearch {
+    font-family: inherit;
+    font-size: inherit;
+}
+
+#errorMsg, #geocodeMsg {
+    color: #AB0000;
+}
+
+#mapPanel {
+    float: right;
+    width: 36%;
+    padding: 2%;
+    height: auto;
+}
+
+#aboutPage {
+    width: 70%;
+    padding: 10%;
+}
+
+#buttonStatusWrapper {
+    background-color: #5B6073;
+    width: 96%;
+    padding: 2%;
+    overflow: hidden;
+    -webkit-border-radius: 8;
+    -moz-border-radius: 8;
+    border-radius: 8px;
+    margin-bottom: 2%;
+    -webkit-box-shadow: 0px 0px 15px 0px rgba(91,96,115,1);
+    -moz-box-shadow: 0px 0px 15px 0px rgba(91,96,115,1);
+    box-shadow: 0px 0px 15px 0px rgba(91,96,115,1);
+}
+
+#status {
+    float: left;
+    width: 70%;
+}
+
+#btnStartStop {
+    float: right;
+    background: #AB0000;
+    background-image: -webkit-linear-gradient(top, #AB0000, #D70000);
+    background-image: -moz-linear-gradient(top, #AB0000, #D70000);
+    background-image: -ms-linear-gradient(top, #AB0000, #D70000);
+    background-image: -o-linear-gradient(top, #AB0000, #D70000);
+    background-image: linear-gradient(to bottom, #AB0000, #D70000);
+    -webkit-border-radius: 8;
+    -moz-border-radius: 8;
+    border-radius: 8px;
+    border: none;
+    font-family: Arial;
+    color: #FFFFFF;
+    font-size: 1em;
+    font-weight: 700;
+    padding: 10px 20px 10px 20px;
+    text-decoration: none;
+    outline: none;
+}
+
+#btnStartStop:hover {
+    float: right;
+    background: #AB0000;
+    text-decoration: none;
+    outline: none;
+}
+
+#about {
+    float: right;
+}
+
+#mapArea {
+    float: left;
+    width: 60%;
+    height: 100%;
+    -webkit-border-radius: 0 0 20px 0;
+    -moz-border-radius: 0 0 20px 0;
+    border-radius: 0 0 20px 0;
+}
+
+#bottomHalf {
+    clear: both;
+    height: 46%;
+    padding: 2%;
+}
+
+#results{
+    background-color: #5B6073;
+    overflow: hidden;
+    -webkit-border-radius: 8;
+    -moz-border-radius: 8;
+    border-radius: 8px;
+    padding: 2%;
+    -webkit-box-shadow: 0px 0px 15px 0px rgba(91,96,115,1);
+    -moz-box-shadow: 0px 0px 15px 0px rgba(91,96,115,1);
+    box-shadow: 0px 0px 15px 0px rgba(91,96,115,1);
+}
+
+#results h2 {
+    margin: 0 0 1em 0;
+    color: #CCCCCC;
+    font-size: 1.4em;
+}
+
+#wordlist {
+    list-style-type: none;
+}
+
+#wordlist li {
+    float: left;
+    padding: 0% 1.2% 0.5% 0%;
+}
+
+#wordlist .hashtags {
+    color: #FFFFFF;
+}
+
+#wordlist .expressions {
+    color: #CCCCCC;
+}
+
+#wordlist .UCwords {
+    color: #AAAAAA;
+}
+
+#wordlist .LCwords {
+    color: #888888;
+}
+
+@media only screen 
+and (max-device-width: 400px)
+and (orientation: portrait) {
+    html, body{
+        font-size: 36px;
+        width: 102%;
+    }
+    
+    #imgLogo {
+        width: 50%;
+        height: 30%;
+        padding: 1% 0 0 1%;
+    }
+    
+    #topHalf {
+        height: 70%;
+    }
+    
+    #mapSearch {
+        position: relative;
+        padding: 2% 2% 2% 0%;
+        font-size: inherit;
+    }
+    
+    #mapPanel {
+        float: none;
+        width: 100%;
+        height: 40%;
+        padding: 1%;
+    }
+    
+    #buttonStatusWrapper {
+        width: 90%;
+        padding: 2%;
+        margin: 1.5%;
+    }
+    
+    #btnStartStop {
+        font-size: 1.2em;
+    }
+    
+    #about {
+        display: none;
+    }
+    
+    #mapArea {
+        width: 100%;
+        margin: 10% 0% 1% 0%;
+        height: 50%;
+        z-index: 99;
+        -webkit-border-radius: 0;
+        -moz-border-radius: 0;
+        border-radius: 0;
+    }
+    
+    #bottomHalf {
+        height: 26%;
+    }
+    
+    #results{
+        margin-top: 10%;
+        width: 92%;
+        padding: 2%;
+    }
+}
