@@ -2,7 +2,8 @@
     /* 
     * BLABLABRA server-side code.
     * 
-    * This code is free to use and derive code from, under the terms of the Apache License 2.0.
+    * This code is free to use and derive code from (as long as the source is disclosed),
+    * under the terms of the GNU General Public License v2.0.
     * 
     */
     $start_time = microtime(true);

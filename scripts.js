@@ -1,8 +1,9 @@
 /* 
  * BLABLABRA core JS code.
  * 
- * This code is free to use and derive code from, under the terms of the Apache License 2.0.
- * 
+ * This code is free to use and derive code from (as long as the source is disclosed),
+ * under the terms of the GNU General Public License v2.0.
+ *
  */
 
 // Globals and parameters
@@ -108,21 +109,22 @@ function btnStartStopClick(){
 
 // Generate a valid CSS class name for each word, so they can be found/animated later.
 function wordToCssId(word, type){
-    
+    var className;
     switch (type){
         case "hashtags": 
-            return "_HS_" + word.substr(1).replace(/\W/g,"_").toLowerCase();
+            className = "_HS_" + word.substr(1).replace(/\W/g,"_").toLowerCase();
             break;
         case "expressions":
-            return "_XP_" + word.replace(/\W/g,"_").toLowerCase();
+            className = "_XP_" + word.replace(/\W/g,"_").toLowerCase();
             break;
         case "UCwords":
-            return "_UC_" + word.replace(/\W/g,"_").toLowerCase();
+            className = "_UC_" + word.replace(/\W/g,"_").toLowerCase();
             break;
         case "LCwords":
-            return "_LC_" + word.replace(/\W/g,"_").toLowerCase();
+            className = "_LC_" + word.replace(/\W/g,"_").toLowerCase();
             break;
     }
+    return className;
 }
 
 // Translate a word count in a font size (to grow/shrink words in the word list)
@@ -146,7 +148,7 @@ function startListening() {
     var searchCount = 0;
     var tweetCount = 0;
     // All the magic ends up in TTopics,
-    // a multidimensional array with types and words and their ocurrence amounts
+    // a multidimensional array with types and words and their occurrence amounts
     // 
     // ["hashtags"]
     //      ["#yolo"] => 12
