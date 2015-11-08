@@ -6,21 +6,36 @@
  *
  */
 
-// Globals and parameters
-var maxSearches = 50;   // It does this much searches...
+/********************
+  GLOBAL PARAMETERS
+*********************/
+
+var maxSearches = 10;   // It does this much searches...
 var pagesPerSearch = 1; // ...that retrieve this much pages of search results...
 var pageSize = 100;     // ...containing this much tweets (max is 100).
 var wordListSize = 30;  // The resulting word cloud is capped at this much words.
 var isListening = false; 
 
-// Courtesy of Google Maps API
+// If Blablabra is called with a special parameter, 
+// some functionality that uses IBM Watson's APIs
+// are enabled.
+var watson = (document.location.search === '?watson')
+var watsonMaxWords = 1000;
+
+// Google Maps API parameters
 var map, geocoder; 
 var radarCircleAnim, radarCircleInterval, radarCircleRadius;
 
+
+/*****************
+  MAIN FUNCTIONS
+******************/
+
 // Gentlemen, start your engines.
 function initialize() {
+
     var mapOptions = {
-          center: { lat: 43.739401, lng: -79.421399},
+          center: { lat: 43.739401, lng: -79.421399}, // Defaults to the 6ix
           zoom: 9,
           zoomControlOptions: {
             position: google.maps.ControlPosition.LEFT_BOTTOM
@@ -35,32 +50,39 @@ function initialize() {
             
     // Try HTML5 geolocation
     if(navigator.geolocation) {
+
       navigator.geolocation.getCurrentPosition(function(position) {
         var pos = new google.maps.LatLng(position.coords.latitude,
                                          position.coords.longitude);
         map.setCenter(pos);
       }, function() {});
+
     }
+
 }
 
 // Map search function
 function codeAddress() {
-    document.getElementById('geocodeMsg').innerHTML = "";
+    
+    var geoCodeMsg = document.getElementById('geocodeMsg');
+    geoCodeMsg.innerHTML = "";
     var address = document.getElementById('address').value;
     geocoder.geocode( { 'address': address}, function(results, status) {
+        
         if (status == google.maps.GeocoderStatus.OK) {
             map.setCenter(results[0].geometry.location);
         } else {
-            if (status == 'ZERO_RESULTS')
-                document.getElementById('geocodeMsg').innerHTML = "No results.";
-            else document.getElementById('geocodeMsg').innerHTML = 'Error: ' + status;
+            document.getElementById('geocodeMsg').innerHTML = (status == 'ZERO_RESULTS') ? "No results." : 'Error: ' + status;
         }
+    
     });
 }
 
 // Radar bleep animation
 function radarOverlay(turnOn, radius){
+
     if (turnOn){
+
         var circleAnimParams = {
             strokeColor: '#00CC00',
             strokeOpacity: 1,
@@ -69,97 +91,160 @@ function radarOverlay(turnOn, radius){
             center: map.getCenter(),
             radius: 1
         };
+        
         radarCircleAnim = new google.maps.Circle(circleAnimParams);
         radarCircleAnimRadius = radius * 1000;
         
         radarCircleInterval = window.setInterval(function(){
+        
             var curRadius = radarCircleAnim.getRadius();
             curRadius += Math.round(radarCircleAnimRadius / 20);
-            if (curRadius > radarCircleAnimRadius) curRadius = 1;
+            curRadios = (curRadius > radarCircleAnimRadius) ? 1 : curRadius;
             radarCircleAnim.setRadius(curRadius);
             radarCircleAnim.setOptions({
                 strokeOpacity: 1 - (curRadius / radarCircleAnimRadius)
             });
+        
         },50);
         
     } else {
+        
         radarCircleAnim.setVisible(false);
         window.clearInterval(radarCircleInterval);
+    
     }
 }
 
 // Toggle AJAX calls on/off
 function btnStartStopClick(){
+    
+    var status = document.getElementById("status");
+    var btnStartStop = document.getElementById("btnStartStop");
+    var errorMsg = document.getElementById("errorMsg");
+    
     if (!isListening){
-        document.getElementById("errorMsg").innerHTML = "";
-        document.getElementById("status").innerHTML = "Starting search, please wait...";
+    
+        errorMsg.innerHTML = "";
+        status.innerHTML = "Starting search, please wait...";
         isListening = true;
-        document.getElementById("btnStartStop").className = "btnOn";
-        document.getElementById("btnStartStop").value = "Stop";
+        btnStartStop.className = "btnOn";
+        btnStartStop.value = "Stop";
         startListening();
+    
     } else {
-        document.getElementById("status").innerHTML = "Stopping...";
+    
+        status.innerHTML = "Stopping...";
         isListening = false;
-        document.getElementById("btnStartStop").className = "btnOff";
-        document.getElementById("btnStartStop").value = "Start";
+        btnStartStop.className = "btnOff";
+        btnStartStop.value = "Start";
+    
     }
+
 }
 
-// Auxiliary functions:
+/**********************
+  AUXILIARY FUNCTIONS
+***********************/
 
 // Generate a valid CSS class name for each word, so they can be found/animated later.
 function wordToCssId(word, type){
-    var className;
-    switch (type){
-        case "hashtags": 
-            className = "_HS_" + word.substr(1).replace(/\W/g,"_").toLowerCase();
-            break;
-        case "expressions":
-            className = "_XP_" + word.replace(/\W/g,"_").toLowerCase();
-            break;
-        case "UCwords":
-            className = "_UC_" + word.replace(/\W/g,"_").toLowerCase();
-            break;
-        case "LCwords":
-            className = "_LC_" + word.replace(/\W/g,"_").toLowerCase();
-            break;
-    }
-    return className;
+    
+    word = (type === 'hashtags') ? word.substr(1) : word;
+    var prepend = {
+        'hashtags': '_HS_',
+        'expressions': '_XP_',
+        'UCwords': '_UC_',
+        'LCwords': '_LC_',
+    };
+    return prepend[type] + word.replace(/\W/g,"_").toLowerCase();
+
 }
 
 // Translate a word count in a font size (to grow/shrink words in the word list)
 function countToFontSize(count, min, max){
+
     var baseSize = 1;  // Basic (non-enlarged) font size. All values in em.
     var maxSize = 3;
-    
     countRatio = (count - min) / (max - min);
     sizeRange = maxSize - baseSize;
     return Math.round(sizeRange * countRatio) + baseSize;
+
 }
 
-// This is used to sort arrays
-function reverse(a, b) {
-    return b - a;
+// Display some extra information when IBM Watson's API is enabled
+function showPersonalityAnalysis(text){
+    
+    // Call Mr. Watson on the AJAX phone.
+    $.ajax({
+
+        //url: 'http://blablabrainsights.mybluemix.net/?q=TESTMODE',
+        url: 'http://blablabrainsights.mybluemix.net/?q=' + text,
+        dataType: 'json',
+        success: function(watsonData){
+
+            if(!("error" in watsonData)){
+
+                // Set up a place in the page for the new data
+                insightsDiv = document.getElementById("insights");
+                if (!insightsDiv){
+                    document.getElementById("bottomHalf").innerHTML += "<div id='insights'></div>";
+                    insightsDiv = document.getElementById("insights");
+                }
+                insightsDiv.innerHTML += 
+                    "<h2>Population personality analysis:</h2>"
+                    + "<div class='summary-div'></div>"
+                    + "<small><a href='http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/personality-insights.html'>Powered by IBM Personality Insights</small>"
+                    + "</div>";
+                // Convert the data into the summary text.
+                showTextSummary(watsonData['response']); // This is defined in insights.js
+
+            } else {
+
+                // if the API returns an error...
+                console.log('Watson API error: ' + watsonData['error']);
+                console.log(watsonData);
+                document.getElementById("errorMsg").innerHTML = watsonData['error']['error'];
+
+            }
+        },
+
+        error: function(){
+
+            document.getElementById("errorMsg").innerHTML = 'Insights API AJAX call error.';
+
+        }
+
+    });
+
 }
 
-// Now for the meaty parts:
-
+// Now for the meaty parts: the main listener
 function startListening() {
+
     var searchCount = 0;
     var tweetCount = 0;
+
     // All the magic ends up in TTopics,
-    // a multidimensional array with types and words and their occurrence amounts
+    // a multidimensional associative array with types and words and 
+    // their occurrence amounts. Example:
     // 
-    // ["hashtags"]
-    //      ["#yolo"] => 12
-    //      ["#tgif"] => 99
-    //  ["expressions"]
-    //      ["Bloody Mary"] => 12
-    //  ["UCwords"] (meaning 'uppercase words')
-    //      ["Patriots"] => 12
-    //      ["Dolphins"] => 8
-    //  etc.
-    var TTopics = []; 
+    // ["hashtags": 
+    //    ["#yolo": 12,
+    //     "#tgif": 99],
+    //  ["expressions":
+    //      ["Bloody Mary": 12],
+    //  ["UCwords": // meaning 'uppercase words'
+    //      ["Patriots": 12,
+    //       "Dolphins": 8],
+    //  ["LCwords": // meaning 'lowercase words'
+    //      ["jobs": 7]
+    // 
+    var TTopics = [];
+
+    // While the counting is done, WatsonText stores a concatenated string with all words.
+    // This is used with IBM's "Personality Insights" API.
+    var watsonText = "";
+    var watsonCount = 0;
     
     // This will store the range of count amounts that will be displayed.
     // Limited to 'wordListSize' elements.
@@ -204,6 +289,9 @@ function startListening() {
         wordList = document.getElementById("wordlist");
     } else {
         wordList.innerHTML = "";
+        if (watson){ 
+            document.getElementById("insights").innerHTML = "";
+        }
     }
 
     // When the tubes start pouring, you go and do THIS:
@@ -235,12 +323,37 @@ function startListening() {
                     }
                     for (var word in JSONresults[type]){
                         if (TTopics[type][word] >= 1){
-                                TTopics[type][word] = TTopics[type][word] + JSONresults[type][word];
+                            // Word is already in TTopics
+                            TTopics[type][word] = TTopics[type][word] + JSONresults[type][word];
                         } else { 
-                                TTopics[type][word] = JSONresults[type][word];
+                            // Word is new
+                            TTopics[type][word] = JSONresults[type][word];
                         }
                     }
                 }
+
+                // Words that will be used by Personality Insights
+                // are concatenated in watsonText.
+                if (watson){
+                    for (var word in JSONresults['expressions'])
+                        if (watsonCount < watsonMaxWords){
+                            watsonText += word + " ";
+                            watsonCount += 1;
+                        }
+                        
+                    for (var word in JSONresults['UCwords'])
+                        if (watsonCount < watsonMaxWords){
+                            watsonText += word + " ";
+                            watsonCount += 1;
+                        }
+                    
+                    for (var word in JSONresults['LCwords'])
+                        if (watsonCount < watsonMaxWords){
+                            watsonText += word + " ";
+                            watsonCount += 1;
+                        }
+                }
+                
 
                 // Generate the count amounts array
                 countAmounts = [];
@@ -250,7 +363,7 @@ function startListening() {
     //                    console.log("ARRAY: Processed '"+word+"' (count="+TTopics[type][word]+")");
                         if (countAmounts.indexOf(TTopics[type][word]) === -1){
                             countAmounts.push(TTopics[type][word]);
-                            countAmounts.sort(reverse);
+                            countAmounts.sort(function(a,b){ return b-a; }); // Reverse sort
     //                        console.log("ARRAY: "+countAmounts.toString());
                             if(countAmounts.length > wordListSize){
                                 countAmounts.pop();
@@ -373,6 +486,8 @@ function startListening() {
                     TTopics = null; // Release some memory
                     document.getElementById("btnStartStop").className = "btnOff";
                     document.getElementById("btnStartStop").value = "Start";
+                    // Show some extra info if IBM Watson's API is enabled
+                    if (watson) showPersonalityAnalysis(watsonText);
                 }
             } else {
                 // My tummy does not feel too good :(
