@@ -262,18 +262,18 @@ function startListening() {
     radarOverlay(true, map_range);
     
     var proxyUrl = "TTbyLocation.php"
-        +"?lat="+map_lat.toString()
-        +"&long="+map_lng.toString()
-        +"&radius="+map_range.toString()
-        +"&pages="+pagesPerSearch
-        +"&page_size="+pageSize;
+        + "?lat=" + map_lat.toString()
+        + "&long=" + map_lng.toString()
+        + "&radius=" + map_range.toString()
+        + "&pages=" + pagesPerSearch
+        + "&page_size=" + pageSize;
 
     // Getting ready to dive into the intarweb tubes
     var xmlhttp;
     if (window.XMLHttpRequest){
-            xmlhttp=new XMLHttpRequest(); // code for IE7+, Firefox, Chrome, Opera, Safari
+            xmlhttp = new XMLHttpRequest(); // code for IE7+, Firefox, Chrome, Opera, Safari
     } else if (window.ActiveXObject){
-            xmlhttp=new ActiveXObject("Microsoft.XMLHTTP"); // code for IE6, IE5
+            xmlhttp = new ActiveXObject("Microsoft.XMLHTTP"); // code for IE6, IE5
     } else {
             alert("What browser is this that doesn't support AJAX!?");
     }
@@ -281,26 +281,32 @@ function startListening() {
     // Ensure my list of results is there and cleared
     wordList = document.getElementById("wordlist");
     if (wordList === null){
+        
         document.getElementById("bottomHalf").innerHTML = 
                 "<div id='results'>"
                 + "<h2>Results:</h2>"
                 + "<ul id='wordlist'></ul>"
                 + "</div>";
         wordList = document.getElementById("wordlist");
+    
     } else {
+    
         wordList.innerHTML = "";
         if (watson){ 
             document.getElementById("insights").innerHTML = "";
         }
+    
     }
 
     // When the tubes start pouring, you go and do THIS:
     xmlhttp.onreadystatechange=function(){
+    
         if (xmlhttp.readyState == 4){
+    
             searchCount++;
             var JSONresults = eval('(' + xmlhttp.responseText + ')');
-            
             if (!("errors" in JSONresults)){
+
                 // Count stuff out
                 tweetCount += JSONresults["METADATA"]["tweets"];
                 var types = ["hashtags", "expressions", "UCwords"];
@@ -310,70 +316,70 @@ function startListening() {
                 // to ensure smoothness.
                 animSpeed = Math.round(JSONresults["METADATA"]["time_elapsed"] * 1000);
 
-    //            console.log("Input JSON:");
-    //            console.log(JSONresults["METADATA"]);
-    //            console.log("Initial TTopics status");
-    //            console.log(TTopics);
-
                 // Update the counts in TTopics
                 for (var i=0; i<types.length; i++){
+
                     type = types[i];
-                    if (!(type in TTopics)){
-                        TTopics[type] = new Array();
-                    }
+
+                    if (!(type in TTopics)) TTopics[type] = new Array();
+
                     for (var word in JSONresults[type]){
+                        
                         if (TTopics[type][word] >= 1){
+                        
                             // Word is already in TTopics
                             TTopics[type][word] = TTopics[type][word] + JSONresults[type][word];
+                        
                         } else { 
+                        
                             // Word is new
                             TTopics[type][word] = JSONresults[type][word];
+                        
                         }
+                    
                     }
+                
                 }
 
                 // Words that will be used by Personality Insights
                 // are concatenated in watsonText.
                 if (watson){
-                    for (var word in JSONresults['expressions'])
-                        if (watsonCount < watsonMaxWords){
-                            watsonText += word + " ";
-                            watsonCount += 1;
+
+                    ['expressions', 'UCwords', 'LCwords'].forEach(function(wType){
+
+                        for (var word in JSONresults[wType]){
+                
+                            if (watsonCount < watsonMaxWords){
+                                
+                                watsonText += word + " ";
+                                watsonCount += 1;
+                            
+                            }
+
                         }
-                        
-                    for (var word in JSONresults['UCwords'])
-                        if (watsonCount < watsonMaxWords){
-                            watsonText += word + " ";
-                            watsonCount += 1;
-                        }
-                    
-                    for (var word in JSONresults['LCwords'])
-                        if (watsonCount < watsonMaxWords){
-                            watsonText += word + " ";
-                            watsonCount += 1;
-                        }
+
+                    });
+                
                 }
                 
-
                 // Generate the count amounts array
                 countAmounts = [];
                 for (var i=0; i<types.length; i++){
+
                     type = types[i];
                     for (var word in TTopics[type]){
-    //                    console.log("ARRAY: Processed '"+word+"' (count="+TTopics[type][word]+")");
+
                         if (countAmounts.indexOf(TTopics[type][word]) === -1){
+                            
                             countAmounts.push(TTopics[type][word]);
                             countAmounts.sort(function(a,b){ return b-a; }); // Reverse sort
-    //                        console.log("ARRAY: "+countAmounts.toString());
-                            if(countAmounts.length > wordListSize){
-                                countAmounts.pop();
-                            }
+                            if (countAmounts.length > wordListSize) countAmounts.pop();
+                            
                         }
+                    
                     }
+                
                 }
-
-    //            console.log("Final array: "+countAmounts.toString());
-    //            console.log("Starting list update.");
 
                 var shownWords = 0;
                 var minAmount = countAmounts[countAmounts.length-1];
@@ -398,21 +404,28 @@ function startListening() {
                  *  It's convoluted, but saves some costly array traversals.
                 */
                 for(i=0; i<countAmounts.length; i++){
+                    
                     if ((shownWords >= wordListSize) || (countAmounts[i] == 1)){
+                    
                         minAmount = countAmounts[i];
                         break;
+                    
                     }
+                    
                     for(typeKey=0; typeKey < types.length; typeKey++){
+                        
                         if (shownWords >= wordListSize) break;
                         currentType = types[typeKey];
-    //                    console.log(" ==== Current type:"+currentType+" ==== already inserted: "+shownWords);
                         for (word in TTopics[currentType]) {
+                            
                             if (shownWords >= wordListSize) break;
                             listItem = document.getElementById(wordToCssId(word, currentType));
                             // A word is popular if its count amount is in countAmounts.
                             if (TTopics[currentType][word] == countAmounts[i]){
+                                
                                 idName = wordToCssId(word, currentType);
                                 if (listItem === null){
+                                    
                                     // New popular word. Welcome to the page!
                                     listItem = document.createElement("li");
                                     listItem.id = idName;
@@ -424,59 +437,64 @@ function startListening() {
                                             + "</a>";
                                     wordList.insertBefore(listItem, wordList.lastChild);
                                     $("#"+idName).show(animSpeed);
-    //                                console.log(word+" inserted. Count:"+TTopics[currentType][word]);
                                     shownWords++;
+
                                 } else {
+
                                     // Word already on the page, update it.
                                     listItem.firstChild.title = TTopics[currentType][word] + " occurrences";
-                                    if (!$("#"+idName).is(":visible")){
-                                        $("#"+idName).show(animSpeed);
-    //                                    console.log(word+" re-shown. Count:"+TTopics[currentType][word]);
-                                    }
+                                    if (!$("#"+idName).is(":visible")) $("#"+idName).show(animSpeed);
                                     // Grow/shrink the word according to the word count
                                     animProperties = {};
                                     animProperties["font-size"] = countToFontSize(TTopics[currentType][word],countAmounts[countAmounts.length-1],countAmounts[0]) + "em";
                                     $("#"+idName).animate(animProperties,animSpeed);
                                     shownWords++;
+
                                 }    
+
                             }
+
                         }
+
                     }
+
                 }
 
-    //            console.log(" = = = = = = = = = = = = = = = = = = = = = ");
-    //            console.log(" D O N E - Min amount is " + minAmount);
-    //            console.log(" = = = = = = = = = = = = = = = = = = = = = ");
-
                 // Now, remove un-popular words that might be on display
-                if ((minAmount != countAmounts[countAmounts.length-1]) ||
-                    (minAmount == 1)){
+                if ((minAmount != countAmounts[countAmounts.length-1]) || (minAmount == 1)){
+    
                     for(typeKey=0; typeKey < types.length; typeKey++){
+
                         currentType = types[typeKey];
-    //                    console.log(" ==== Deleting type:"+currentType+" ==== ");
                         for (word in TTopics[currentType]) {
+
                             if (TTopics[currentType][word] <= minAmount){
+
                                 idName = wordToCssId(word, currentType);
                                 listItem = document.getElementById(idName);
                                 if (listItem !== null){
-                                    if ($("#"+idName).is(":visible")){
-                                        $("#"+idName).hide(animSpeed);
-    //                                    console.log(word+" hidden. Count:"+TTopics[currentType][word]);
-                                    }
+
+                                    if ($("#"+idName).is(":visible")) $("#"+idName).hide(animSpeed);
+
                                 }
+
                             }
+
                         }
+
                     }
+
                 }
-    //            console.log(" = = = = = = = = = = = = = = = = = = = = = ");
 
                 if ((searchCount < maxSearches) && isListening){
-                    // I'm still hungry, give me MORE DATA!
+
+                    // Keep retrieving data
                     document.getElementById("status").innerHTML = tweetCount + " tweets processed so far. Fetching more data...";
-                    //document.getElementById("status").innerHTML += "<br />" + proxyUrl + "&max_id=" + JSONresults.METADATA.min_id;
                     xmlhttp.open("GET", proxyUrl + "&max_id=" + JSONresults.METADATA.min_id, true);
                     xmlhttp.send(null);
+
                 } else {
+
                     // I had enough.
                     document.getElementById("status").innerHTML = "Done! Counted " + tweetCount + " tweets.";
                     searchCount = 0;
@@ -488,23 +506,22 @@ function startListening() {
                     document.getElementById("btnStartStop").value = "Start";
                     // Show some extra info if IBM Watson's API is enabled
                     if (watson) showPersonalityAnalysis(watsonText);
+
                 }
+
             } else {
-                // My tummy does not feel too good :(
+
+                // Error handling
                 radarOverlay(false, map_range);
                 isListening = false;
-                var errorMsg;
                 console.log("Error code " + JSONresults["errors"][0]["code"]);
-                switch (JSONresults["errors"][0]["code"]){
-                    case 88:
-                        errorMsg = "Sorry, the Twitter API usage limit was exceeded. Try again in a few minutes.";
-                        break;
-                    default:
-                        errorMsg = JSONresults["errors"][0]["message"];
-                }
+                var errorMsg = (JSONresults["errors"][0]["code"] == 88) ? "Sorry, the Twitter API usage limit was exceeded. Try again in a few minutes." : JSONresults["errors"][0]["message"];
                 document.getElementById("errorMsg").innerHTML = errorMsg;
+
             }
+
         }
+
     };
 
     // The AJAX call that starts it all
