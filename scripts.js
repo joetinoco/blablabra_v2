@@ -1,6 +1,6 @@
-/* 
+/*
  * BLABLABRA core JS code.
- * 
+ *
  * This code is free to use and derive code from (as long as the source is disclosed),
  * under the terms of the GNU General Public License v2.0.
  *
@@ -14,16 +14,16 @@ var maxSearches = 10;   // It does this much searches...
 var pagesPerSearch = 1; // ...that retrieve this much pages of search results...
 var pageSize = 100;     // ...containing this much tweets (max is 100).
 var wordListSize = 30;  // The resulting word cloud is capped at this much words.
-var isListening = false; 
+var isListening = false;
 
-// If Blablabra is called with a special parameter, 
+// If Blablabra is called with a special parameter,
 // some functionality that uses IBM Watson's APIs
 // are enabled.
 var watson = (document.location.search === '?watson')
 var watsonMaxWords = 1000;
 
 // Google Maps API parameters
-var map, geocoder; 
+var map, geocoder;
 var radarCircleAnim, radarCircleInterval, radarCircleRadius;
 
 
@@ -47,7 +47,7 @@ function initialize() {
     map = new google.maps.Map(document.getElementById('mapArea'),
             mapOptions);
     geocoder = new google.maps.Geocoder();
-            
+
     // Try HTML5 geolocation
     if(navigator.geolocation) {
 
@@ -63,18 +63,18 @@ function initialize() {
 
 // Map search function
 function codeAddress() {
-    
+
     var geoCodeMsg = document.getElementById('geocodeMsg');
     geoCodeMsg.innerHTML = "";
     var address = document.getElementById('address').value;
     geocoder.geocode( { 'address': address}, function(results, status) {
-        
+
         if (status == google.maps.GeocoderStatus.OK) {
             map.setCenter(results[0].geometry.location);
         } else {
             document.getElementById('geocodeMsg').innerHTML = (status == 'ZERO_RESULTS') ? "No results." : 'Error: ' + status;
         }
-    
+
     });
 }
 
@@ -91,12 +91,12 @@ function radarOverlay(turnOn, radius){
             center: map.getCenter(),
             radius: 1
         };
-        
+
         radarCircleAnim = new google.maps.Circle(circleAnimParams);
         radarCircleAnimRadius = radius * 1000;
-        
+
         radarCircleInterval = window.setInterval(function(){
-        
+
             var curRadius = radarCircleAnim.getRadius();
             curRadius += Math.round(radarCircleAnimRadius / 20);
             curRadios = (curRadius > radarCircleAnimRadius) ? 1 : curRadius;
@@ -104,40 +104,40 @@ function radarOverlay(turnOn, radius){
             radarCircleAnim.setOptions({
                 strokeOpacity: 1 - (curRadius / radarCircleAnimRadius)
             });
-        
+
         },50);
-        
+
     } else {
-        
+
         radarCircleAnim.setVisible(false);
         window.clearInterval(radarCircleInterval);
-    
+
     }
 }
 
 // Toggle AJAX calls on/off
 function btnStartStopClick(){
-    
+
     var status = document.getElementById("status");
     var btnStartStop = document.getElementById("btnStartStop");
     var errorMsg = document.getElementById("errorMsg");
-    
+
     if (!isListening){
-    
+
         errorMsg.innerHTML = "";
         status.innerHTML = "Starting search, please wait...";
         isListening = true;
         btnStartStop.className = "btnOn";
         btnStartStop.value = "Stop";
         startListening();
-    
+
     } else {
-    
+
         status.innerHTML = "Stopping...";
         isListening = false;
         btnStartStop.className = "btnOff";
         btnStartStop.value = "Start";
-    
+
     }
 
 }
@@ -148,7 +148,7 @@ function btnStartStopClick(){
 
 // Generate a valid CSS class name for each word, so they can be found/animated later.
 function wordToCssId(word, type){
-    
+
     word = (type === 'hashtags') ? word.substr(1) : word;
     var prepend = {
         'hashtags': '_HS_',
@@ -173,24 +173,27 @@ function countToFontSize(count, min, max){
 
 // Display some extra information when IBM Watson's API is enabled
 function showPersonalityAnalysis(text){
-    
+
     // Call Mr. Watson on the AJAX phone.
     $.ajax({
-
-        //url: 'http://blablabrainsights.mybluemix.net/?q=TESTMODE',
-        url: 'http://blablabrainsights.mybluemix.net/?q=' + text,
+        type: "POST",
+        url: 'http://blablabrainsights.herokuapp.com',
+        data: JSON.stringify({ "query": text }),
+        //url: 'http://blablabrainsights:6001',
+        //data: JSON.stringify({ "query": 'TESTMODE' }),
+        contentType: "application/json",
         dataType: 'json',
         success: function(watsonData){
 
+            var insightsDiv = document.getElementById("insights");
             if(!("error" in watsonData)){
 
                 // Set up a place in the page for the new data
-                insightsDiv = document.getElementById("insights");
                 if (!insightsDiv){
                     document.getElementById("bottomHalf").innerHTML += "<div id='insights'></div>";
                     insightsDiv = document.getElementById("insights");
                 }
-                insightsDiv.innerHTML += 
+                insightsDiv.innerHTML +=
                     "<h2>Population personality analysis:</h2>"
                     + "<div class='summary-div'></div>"
                     + "<small><a href='http://www.ibm.com/smarterplanet/us/en/ibmwatson/developercloud/personality-insights.html'>Powered by IBM Personality Insights</small>"
@@ -225,10 +228,10 @@ function startListening() {
     var tweetCount = 0;
 
     // All the magic ends up in TTopics,
-    // a multidimensional associative array with types and words and 
+    // a multidimensional associative array with types and words and
     // their occurrence amounts. Example:
-    // 
-    // ["hashtags": 
+    //
+    // ["hashtags":
     //    ["#yolo": 12,
     //     "#tgif": 99],
     //  ["expressions":
@@ -238,29 +241,29 @@ function startListening() {
     //       "Dolphins": 8],
     //  ["LCwords": // meaning 'lowercase words'
     //      ["jobs": 7]
-    // 
+    //
     var TTopics = [];
 
     // While the counting is done, WatsonText stores a concatenated string with all words.
     // This is used with IBM's "Personality Insights" API.
     var watsonText = "";
     var watsonCount = 0;
-    
+
     // This will store the range of count amounts that will be displayed.
     // Limited to 'wordListSize' elements.
     var countAmounts;
-    
+
     // Where are you pointing at, Google Maps?
     var map_lat = map.getCenter().lat();
     var map_lng = map.getCenter().lng();
-    
+
     // Range radius is measured from the center to the top of the map.
     var map_range = Math.round(google.maps.geometry.spherical.computeDistanceBetween(
                 new google.maps.LatLng(map.getBounds().getNorthEast().lat(), map_lng),
                 new google.maps.LatLng(map_lat, map_lng)) / 1000);
-                
+
     radarOverlay(true, map_range);
-    
+
     var proxyUrl = "TTbyLocation.php"
         + "?lat=" + map_lat.toString()
         + "&long=" + map_lng.toString()
@@ -277,32 +280,36 @@ function startListening() {
     } else {
             alert("What browser is this that doesn't support AJAX!?");
     }
-    
+
     // Ensure my list of results is there and cleared
     wordList = document.getElementById("wordlist");
     if (wordList === null){
-        
-        document.getElementById("bottomHalf").innerHTML = 
+
+        document.getElementById("bottomHalf").innerHTML =
                 "<div id='results'>"
                 + "<h2>Results:</h2>"
                 + "<ul id='wordlist'></ul>"
                 + "</div>";
         wordList = document.getElementById("wordlist");
-    
+
     } else {
-    
+
         wordList.innerHTML = "";
-        if (watson){ 
-            document.getElementById("insights").innerHTML = "";
+
+        if (watson){
+
+            var insightsDiv = document.getElementById("insights");
+            if (insightsDiv !== null) insightsDiv.innerHTML = "";
+
         }
-    
+
     }
 
     // When the tubes start pouring, you go and do THIS:
     xmlhttp.onreadystatechange=function(){
-    
+
         if (xmlhttp.readyState == 4){
-    
+
             searchCount++;
             var JSONresults = eval('(' + xmlhttp.responseText + ')');
             if (!("errors" in JSONresults)){
@@ -312,7 +319,7 @@ function startListening() {
                 var types = ["hashtags", "expressions", "UCwords"];
                 var type;
 
-                // The word list moves around the speed of the AJAX calls, 
+                // The word list moves around the speed of the AJAX calls,
                 // to ensure smoothness.
                 animSpeed = Math.round(JSONresults["METADATA"]["time_elapsed"] * 1000);
 
@@ -324,21 +331,21 @@ function startListening() {
                     if (!(type in TTopics)) TTopics[type] = new Array();
 
                     for (var word in JSONresults[type]){
-                        
+
                         if (TTopics[type][word] >= 1){
-                        
+
                             // Word is already in TTopics
                             TTopics[type][word] = TTopics[type][word] + JSONresults[type][word];
-                        
-                        } else { 
-                        
+
+                        } else {
+
                             // Word is new
                             TTopics[type][word] = JSONresults[type][word];
-                        
+
                         }
-                    
+
                     }
-                
+
                 }
 
                 // Words that will be used by Personality Insights
@@ -348,20 +355,20 @@ function startListening() {
                     ['expressions', 'UCwords', 'LCwords'].forEach(function(wType){
 
                         for (var word in JSONresults[wType]){
-                
+
                             if (watsonCount < watsonMaxWords){
-                                
+
                                 watsonText += word + " ";
                                 watsonCount += 1;
-                            
+
                             }
 
                         }
 
                     });
-                
+
                 }
-                
+
                 // Generate the count amounts array
                 countAmounts = [];
                 for (var i=0; i<types.length; i++){
@@ -370,62 +377,62 @@ function startListening() {
                     for (var word in TTopics[type]){
 
                         if (countAmounts.indexOf(TTopics[type][word]) === -1){
-                            
+
                             countAmounts.push(TTopics[type][word]);
                             countAmounts.sort(function(a,b){ return b-a; }); // Reverse sort
                             if (countAmounts.length > wordListSize) countAmounts.pop();
-                            
+
                         }
-                    
+
                     }
-                
+
                 }
 
                 var shownWords = 0;
                 var minAmount = countAmounts[countAmounts.length-1];
 
                 /*  Update the word cloud
-                 * 
-                 *  Now, this is tricky: the 'for' loops traverse TTopics in a 
-                 *  counterintuitive way. The outermost 'for' loop is used to 
-                 *  process the words from the most popular to the least, 
+                 *
+                 *  Now, this is tricky: the 'for' loops traverse TTopics in a
+                 *  counterintuitive way. The outermost 'for' loop is used to
+                 *  process the words from the most popular to the least,
                  *  starting with the largest word count in countAmount.
-                 *  
-                 *  As words of different types might have the same word count, 
-                 *  shownWords is used to keep a hard limit on how many words are 
+                 *
+                 *  As words of different types might have the same word count,
+                 *  shownWords is used to keep a hard limit on how many words are
                  *  visible on the page.
-                 *  
-                 *  The inner loops traverse TTopics in order by word type. 
-                 *  This ensures priority for hashtags first, then expressions, 
-                 *  etc., in the case multiple words have the same word count. 
-                 *  Notice the last type (lowercase words) is done only if there 
+                 *
+                 *  The inner loops traverse TTopics in order by word type.
+                 *  This ensures priority for hashtags first, then expressions,
+                 *  etc., in the case multiple words have the same word count.
+                 *  Notice the last type (lowercase words) is done only if there
                  *  is space left.
-                 *  
+                 *
                  *  It's convoluted, but saves some costly array traversals.
                 */
                 for(i=0; i<countAmounts.length; i++){
-                    
+
                     if ((shownWords >= wordListSize) || (countAmounts[i] == 1)){
-                    
+
                         minAmount = countAmounts[i];
                         break;
-                    
+
                     }
-                    
+
                     for(typeKey=0; typeKey < types.length; typeKey++){
-                        
+
                         if (shownWords >= wordListSize) break;
                         currentType = types[typeKey];
                         for (word in TTopics[currentType]) {
-                            
+
                             if (shownWords >= wordListSize) break;
                             listItem = document.getElementById(wordToCssId(word, currentType));
                             // A word is popular if its count amount is in countAmounts.
                             if (TTopics[currentType][word] == countAmounts[i]){
-                                
+
                                 idName = wordToCssId(word, currentType);
                                 if (listItem === null){
-                                    
+
                                     // New popular word. Welcome to the page!
                                     listItem = document.createElement("li");
                                     listItem.id = idName;
@@ -433,7 +440,7 @@ function startListening() {
                                     listItem.style = "display: none;";
                                     listItem.innerHTML = "<a href='https://twitter.com/search?q=" + encodeURIComponent(word) + "' target='_blank' "
                                             + "title='" + TTopics[currentType][word] + " occurrences'>"
-                                            + word 
+                                            + word
                                             + "</a>";
                                     wordList.insertBefore(listItem, wordList.lastChild);
                                     $("#"+idName).show(animSpeed);
@@ -450,7 +457,7 @@ function startListening() {
                                     $("#"+idName).animate(animProperties,animSpeed);
                                     shownWords++;
 
-                                }    
+                                }
 
                             }
 
@@ -462,7 +469,7 @@ function startListening() {
 
                 // Now, remove un-popular words that might be on display
                 if ((minAmount != countAmounts[countAmounts.length-1]) || (minAmount == 1)){
-    
+
                     for(typeKey=0; typeKey < types.length; typeKey++){
 
                         currentType = types[typeKey];
@@ -515,6 +522,7 @@ function startListening() {
                 radarOverlay(false, map_range);
                 isListening = false;
                 console.log("Error code " + JSONresults["errors"][0]["code"]);
+                console.log(JSONresults["errors"]);
                 var errorMsg = (JSONresults["errors"][0]["code"] == 88) ? "Sorry, the Twitter API usage limit was exceeded. Try again in a few minutes." : JSONresults["errors"][0]["message"];
                 document.getElementById("errorMsg").innerHTML = errorMsg;
 
